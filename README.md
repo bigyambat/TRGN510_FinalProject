@@ -24,7 +24,12 @@ Star-count files, clinical data, and other relavent files from GDC cart are uplo
 
 ## Milestone 1
 Due Date: Friday November 28th
-Data from each star-counts is formatted to fit MANIFEST.txt file. See Milestone 1 file for full details once submitted. 
+Data from each star-counts is formatted to fit MANIFEST.txt file. See Milestone 1 section below for full details once submitted. 
+
+1) Star-count files from each folder were manually taken out of individual folders and placed into gdc_download_20221122_055006.438971 folder. 
+
+2) Merging_Python.py script was created. This script took the unstranded columns from each star-counts.tsv file and merged them to the end of the MANIFEST file. The MANIFEST.txt file was converted from txt to csv to accomidate this change better. 
+
 
 ## Milestone 2
 Due Date: Sunday November 27th 

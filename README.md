@@ -23,21 +23,30 @@ I will be using data from NCI GDC. As mentioned, there are 144 htc count files. 
 Star-count files, clinical data, and other relavent files from GDC cart are uploaded to Github with this README
 
 ## Milestone 1
-Due Date: Friday November 28th
+Due Date: Friday December 2nd
 Data from each star-counts is formatted to fit MANIFEST.txt file. See Milestone 1 section below for full details once submitted. 
 
 1) Star-count files from each folder were manually taken out of individual folders and placed into gdc_download_20221122_055006.438971 folder. 
 
-2) Merging_Python.py script was created. This script took the unstranded columns from each star-counts.tsv file and merged them to the end of the MANIFEST file. The MANIFEST.txt file was converted from txt to csv to accomidate this change better. 
+2) Merging_Python.py script was created. This script took the unstranded columns from each star-counts.tsv file. I created a new txt file (test3.txt) that contained the ensemble genes column (gene_id column) from one of the star_counts tsv files. 
+
+The script merged the unstranded columns to the test3.txt file
+
+The test3.txt file was converted to CSV_Manifest3.csv to accomidate reading into RStudio. 
 
 
 ## Milestone 2
-Due Date: Sunday November 27th 
-An initial completion of the vignette including charts/data extracted as image files. Meet with Professor the following week to seek feedback and update
+Due Date: Sunday December 4th 
+Completion of data wrangling such that all dataframes are formatted in ideal manner. Dataframes can now be loaded into DESEQ2 vignette. 
+
 
 ## Deliverable 
-Due Date: December 3rd
+Due Date: December 8th
+
+An initial completion of the vignette including charts/data extracted as image files. Meet with Professor the following week to seek feedback and update
 
 A complete repository with clear documentation an ddescription of analysis and results. Data presented in R' Markdown Script with block points indicating various section of project. 
+
+**Deadline Extended with permission from Professor due to being sick**
 
 

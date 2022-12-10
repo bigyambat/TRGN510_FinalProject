@@ -504,13 +504,12 @@ head(res)
     ## ENSG00000000938.13  0.999823
 
 **Meaning of Data** 
-Base Mean = Average of the normalized count values
-log2(FoldChange) = Change in gene expression between male and female
-lfcSE = Standard Error of the log2 fold change values 
-stat = Wald’s test
-to determine the weighted distance between gene expression 
-pvalue = Hypothesis test to tell whether expression difference is significant
-padj = Adjusted P values based on the Benjamini-Hochberg adjustment
+* Base Mean = Average of the normalized count values
+* log2(FoldChange) = Change in gene expression between male and female
+* lfcSE = Standard Error of the log2 fold change values 
+* stat = Wald’s test to determine the weighted distance between gene expression 
+* pvalue = Hypothesis test to tell whether expression difference is significant
+* padj = Adjusted P values based on the Benjamini-Hochberg adjustment
 
 ### Log fold change shrinkage for visualization and ranking using lfcShrink function
 

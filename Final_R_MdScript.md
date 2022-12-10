@@ -1,6 +1,3 @@
-Untitled
-================
-
 # **TRGN510 Final Project**
 
 ## Title
@@ -417,21 +414,12 @@ dds <- DESeqDataSetFromMatrix(countData = cts,
 ``` r
 # Ignore warning if it appears
 ```
-
-DESeq command tests for the following:
-
-estimating size factors estimating dispersions gene-wise dispersion
-estimates mean-dispersion relationship final dispersion estimates
-fitting model and testing – replacing outliers and refitting for 13396
-genes – DESeq argument ‘minReplicatesForReplace’ = 7 – original counts
-are preserved in counts(dds) estimating dispersions fitting model and
-testing
-
 Run the DeSeq command below
 
 ``` r
 dds <- DESeq(dds)
 ```
+DESeq command tests for the following:
 
     ## estimating size factors
 
@@ -515,12 +503,14 @@ head(res)
     ## ENSG00000000460.17  0.999823
     ## ENSG00000000938.13  0.999823
 
-**Meaning of Data** Base Mean = Average of the normalized count values
+**Meaning of Data** 
+Base Mean = Average of the normalized count values
 log2(FoldChange) = Change in gene expression between male and female
-lfcSE = Standard Error of the log2 fold change values stat = Wald’s test
-to determine the weighted distance between gene expression pvalue =
-Hypothesis test to tell whether expression difference is significant
-padj Adjusted P values based on the Benjamini-Hochberg adjustment
+lfcSE = Standard Error of the log2 fold change values 
+stat = Wald’s test
+to determine the weighted distance between gene expression 
+pvalue = Hypothesis test to tell whether expression difference is significant
+padj = Adjusted P values based on the Benjamini-Hochberg adjustment
 
 ### Log fold change shrinkage for visualization and ranking using lfcShrink function
 
@@ -624,7 +614,9 @@ plotMA(resLFC, ylim=c(-2,2))
 ```
 
 ![](Final_R_MdScript_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
-\### Plot Counts Plots normalized counts with a pseudocount of 0.5.
+
+### Plot Counts 
+Plots normalized counts with a pseudocount of 0.5.
 Variable of interest is specified as intgroup
 
 ``` r
@@ -633,8 +625,10 @@ plotCounts(dds, gene=which.min(res$padj), intgroup="gender")
 ```
 
 ![](Final_R_MdScript_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
-\### Extracting transformed values Two types of transformation methods:
-vst and rlog Transformed values are required to create PCA Plots and
+
+### Extracting transformed values 
+Two types of transformation methods:vst and rlog  
+Transformed values are required to create PCA Plots and
 Heatmaps. Use blind = FALSE for faster runtime. Note: Rlog may take a
 12-24 hours
 
@@ -873,7 +867,7 @@ pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE, cluster_c
 
 ### Sample to Sample Distances
 
-Sample to Sample distances allow us to examine the similarities accross
+Sample to Sample distances allow us to examine the similarities across
 all samples. Follow the code below
 
 ``` r

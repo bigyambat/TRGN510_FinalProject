@@ -1,0 +1,442 @@
+---
+title: "Final_Project_Rmd"
+output: html_document
+date: "2022-12-08"
+---
+
+# **TRGN510 Final Project**
+
+## Title
+Differential Expression Comparing Females vs Male Paragangliomas & Glomus Tumors from NCI GDC Datasets using DeSEQ2 package
+
+## Author
+Bigy Ambat
+
+## Description of Project
+I will be comparing the differential expression of Paragangliomas & Glomus Tumors in Female vs Male patients. Analysis will using the DeSEQ2 R Package and will be using the following vignette: http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html.
+
+For this analysis, I will be data from the NCI GDC database from Link to the dataset is below (with filters on)
+
+https://portal.gdc.cancer.gov/exploration?filters=%7B%22op%22%3A%22and%22%2C%22content%22%3A%5B%7B%22content%22%3A%7B%22field%22%3A%22cases.demographic.vital_status%22%2C%22value%22%3A%5B%22alive%22%5D%7D%2C%22op%22%3A%22in%22%7D%2C%7B%22op%22%3A%22in%22%2C%22content%22%3A%7B%22field%22%3A%22cases.disease_type%22%2C%22value%22%3A%5B%22paragangliomas%20and%20glomus%20tumors%22%5D%7D%7D%2C%7B%22op%22%3A%22in%22%2C%22content%22%3A%7B%22field%22%3A%22cases.primary_site%22%2C%22value%22%3A%5B%22adrenal%20gland%22%5D%7D%7D%2C%7B%22op%22%3A%22in%22%2C%22content%22%3A%7B%22field%22%3A%22cases.project.program.name%22%2C%22value%22%3A%5B%22TCGA%22%5D%7D%7D%2C%7B%22op%22%3A%22in%22%2C%22content%22%3A%7B%22field%22%3A%22cases.samples.sample_type%22%2C%22value%22%3A%5B%22primary%20tumor%22%5D%7D%7D%5D%7D&searchTableTab=cases
+
+The dataset includes 144 star-counts files (split into 61 Males and 83 Females). Datset is only using the TCGA cohort. Dataset is controlling for Primary Tumor and only considering those that are Alive.
+
+
+## Data
+
+I will be using data from NCI GDC. As mentioned, there are 144 Star count files. However, the dataset below has not been filtered for the parameters above. Data wrangling will occur using Python, Bash, & R. All commands be documented along with the vignette.
+
+Star-count files, clinical data, and other relavent files from GDC cart are uploaded to Github with this README
+
+## **Data Wrangling**
+
+The data from the GDC portal must be formatted properly for the DeSEQ2 vignette to function. 
+Initial wrangling is completed using Python (in Jupyter Notebook) and R (in R Studio)
+
+Create a folder called "TRGN510_Final Project" which includes the "clinical.cart" and "gdc_download" folders from GDC.
+
+Inside the "clinical.cart" folder, find the clinical.tsv folder and move it back a level to the "TRGN510_Final Project" folder
+
+## Initial Wrangling of Data
+
+Looking inside the folder labeled "gdc_download_20221122_055006.438971" reveals all the star_count tsv files (which are embedded in unique star_counts folders). Each star_count tsv file represents a sample. 
+
+Make sure to complete the following steps under the "gdc_download" folder above:
+
+**1.Take all Star Count tsv files out of their respective folders for all samples**
+
+**2.Use the following Bash commands to separate a column from one of the tsv files**
+
+Convert one of the tsv files to a txt file
+```{bash, eval=FALSE}
+0176f3d4-979e-4364-a703-a26e2b52ed84.rna_seq.augmented_star_gene_counts.tsv >test.txt
+```
+
+Remove the first column of the test.txt file and create a new txt file 
+```{bash, eval=FALSE}
+tail -n +2 test.txt > test2.txt
+```
+
+
+Extract the gene_id column from the test2.txt file
+```{bash, eval=FALSE}
+awk'{print $0}' test2.txt > test3.txt
+```
+
+
+We will be using the test3.txt file as an update file to iteratively add data from each of the tsv files. 
+
+**3.Create a python script that selects the unstranded column from each star counts file and adds it as a new column to the test3.txt file (which contains the gene_id column). Here is the python script.**
+
+Ensure that you are in the same directory as the tsv files and the test3.txt for this script to work.
+Additionally, make sure to modify file pathways. 
+
+```{bash, eval=FALSE}
+#!/usr/bin/python
+import sys
+import re
+import fileinput
+import pandas as pd 
+import os 
+
+#The function of this python script is to select the unstranded DNA column of each star-counts tsv file and bring that data into a new file. 
+
+# directory name
+dirname = '/Users/bigyambat/Documents/GitHub/TRGN510_FinalProject/gdc_download_20221122_055006.438971'
+ 
+# extensions
+ext = ('.tsv')
+ 
+# scanning the directory to get required files
+
+#Making test3.txt as the csv update file
+update_file = pd.read_csv("test3.txt", sep="\t")
+
+
+#Searches through each tsv file and finds "unstranded" column. Appends it to  test3.txt (which is now converted to a dataframe). New file is CSV_Manifest3
+
+for files in os.scandir(dirname):
+    if files.path.endswith(ext):
+        #print(files)  # printing file name
+        gene_file = pd.read_csv(files, sep="\t", header=1)
+        unstranded_column = gene_file['unstranded']
+        update_file[files.name] = unstranded_column
+
+update_file.to_csv(r'/Users/bigyambat/Documents/GitHub/TRGN510_FinalProject/CSV_Manifest3.csv', index=False)
+```
+
+The python script will create a CSV_Manifest3.csv file which will be used for further wrangling in R. This csv file will be located inside the "TRGN510_Final Project" folder. 
+
+## Data Wrangling in R
+
+The rest of the data wrangling will be completed in R. Create a new R script and run the following commands
+
+```{r}
+setwd("/Users/bigyambat/Documents/GitHub/TRGN510_FinalProject")
+
+```
+
+Install Bioconductor using the following commands in R. Use the BiocManager command to install the following packages from Bioconductor. Only install if BiocManager is not on your local machine. 
+
+```{r, eval=FALSE}
+Bioconductor Install for version 3.16
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install(version = "3.16")
+```
+
+Install the following packages from Bioconductor using the command below. Only install if packages are not on local machine
+
+```{r, eval=FALSE}
+BiocManager::install("DeSeq2")
+BiocManager::install("dplyr")
+BiocManager::install("apeglm")
+BiocManager::install("vsn")
+BiocManager::install("pheatmap")
+```
+
+Load libraries for analysis
+```{r}
+library(DESeq2)
+library(dplyr)
+library(apeglm)
+library(vsn)
+library(pheatmap)
+```
+
+
+Read in CSV_Manifest3.csv into R
+```{r}
+#Refer to comment below for reason behind setting header = FALSE. If issue does not apply, skip lines 15-17
+Star_Matrix <- read.csv(file = 'CSV_Manifest3.csv', header = FALSE)
+
+#Known Issue => R Studio reading messed up the header (with long file names). So, set header to false to avoid issue and make Row 1 the column name manually
+colnames(Star_Matrix) <- Star_Matrix[1,]
+Star_Matrix <- Star_Matrix[-1,]
+
+
+#Removing irrelavent unstranded reads (ie N_Unmapped, etc)
+Star_Matrix2 <- Star_Matrix[-(1:4),]
+```
+
+
+Read in clinical.tsv into R
+```{r}
+#Reading in clinical.tsv file
+clinical_sample <- read.csv(file = 'clinical.tsv', sep = "\t", header = TRUE)
+
+#Clinical Data file has 2 rows for each sample. Selecting for every other row. 
+clinical_sample2 <- clinical_sample[c(rep(FALSE,1),TRUE), ]
+
+#Assigning row names starting from 1
+rownames(clinical_sample2) <- 1:nrow(clinical_sample2)
+
+#Selecting for relavent columns in clinical sample
+clinical_sample3 <- clinical_sample2[, c(2,1,12)]
+
+#Ordering clinical sample by gender
+clinical_sample4 <- clinical_sample3[order(clinical_sample3$gender),]
+
+#Making clinical sample ids as row names
+rownames(clinical_sample4) <- clinical_sample4$case_submitter_id
+
+#Removing irrelavent 1st column
+clinical_sample4 <- clinical_sample4[-c(1)]
+```
+
+
+Read in GDC Sample Data into R
+```{r}
+#Reading Sample Name files which has all the different formats/names for each sample
+Sample_Name_File <- read.csv(file = 'gdc_sample_sheet.2022-11-21.tsv', sep = "\t", header = TRUE)
+
+#Selecing for File name & case.id columns
+Sample_Name_File2 = subset(Sample_Name_File, select = -c(1, 3:5, 7:8) )
+
+#Changing Case.ID Column to "case_submitter_id" to match Star_Matrix column
+colnames(Sample_Name_File2) <- c("File.Name", "case_submitter_id")
+```
+
+Rename column names of Sample Matrix to match respective case_submitter_id
+```{r}
+#Changing the column names (file names) of Star_Matrix2 to their respective case_submitter_id counterpart
+#Known Issue: Since case_submitter ids are out of order compared to the Star_Matrix file names, this has to be done manually by cross-referencing Sample_Name_File2 to Star_Matrix2 :(
+#Easiest way to do this is to alphabetize  Sample_Name_File2 
+
+colnames(Star_Matrix2) <- c("gene_id","TCGA-P7-A5NX","TCGA-SP-A6QC", "TCGA-S7-A7WL", "TCGA-RW-A7D0", "TCGA-WB-A817", "TCGA-W2-A7H7", "TCGA-WB-A81T", "TCGA-S7-A7WN", "TCGA-QR-A70O", "TCGA-XG-A823", "TCGA-WB-A81G", "TCGA-S7-A7WW", "TCGA-SR-A6MZ", "TCGA-QR-A707", "TCGA-QR-A70E", "TCGA-QR-A703", "TCGA-QR-A70V", "TCGA-QR-A70K", "TCGA-P8-A5KC", "TCGA-WB-A81D", "TCGA-WB-A81W", "TCGA-S7-A7X2", "TCGA-QR-A6ZZ", "TCGA-QR-A700", "TCGA-QR-A6GR", "TCGA-WB-A80L", "TCGA-QR-A70A", "TCGA-S7-A7WO", "TCGA-WB-A81R", "TCGA-P7-A5NY", "TCGA-RW-A68G", "TCGA-RW-A67W", "TCGA-WB-A81P", "TCGA-RW-A681", "TCGA-SR-A6N0", "TCGA-RW-A686", "TCGA-WB-A816", "TCGA-P7-A5NY", "TCGA-RW-A68F", "TCGA-RW-A68A", "TCGA-W2-A7H5", "TCGA-SR-A6MS", "TCGA-WB-A815", "TCGA-SR-A6MV", "TCGA-WB-A80Q", "TCGA-WB-A822", "TCGA-S7-A7WP", "TCGA-SP-A6QK", "TCGA-QR-A6GY", "TCGA-W2-A7HF", "TCGA-RW-A686", "TCGA-SR-A6MP", "TCGA-WB-A81F", "TCGA-WB-A81M", "TCGA-P8-A6RY", "TCGA-SR-A6MT", "TCGA-W2-A7HD", "TCGA-SQ-A6I4", "TCGA-WB-A80K", "TCGA-RW-A685", "TCGA-QR-A6GZ", "TCGA-WB-A80V", "TCGA-WB-A818", "TCGA-RW-A68D", "TCGA-S7-A7WM", "TCGA-RW-A68C", "TCGA-W2-A7HA", "TCGA-QT-A5XL", "TCGA-QR-A70M", "TCGA-WB-A81J", "TCGA-RW-A67X", "TCGA-QR-A6GO", "TCGA-QR-A70G", "TCGA-RW-A68B", "TCGA-QR-A70C", "TCGA-QR-A6GU", "TCGA-WB-A80M", "TCGA-WB-A80O", "TCGA-PR-A5PH", "TCGA-QR-A70W", "TCGA-TT-A6YJ", "TCGA-WB-A80N", "TCGA-QT-A5XP", "TCGA-S7-A7WX", "TCGA-SP-A6QI", "TCGA-RT-A6YC", "TCGA-SP-A6QD", "TCGA-QR-A70N", "TCGA-RW-A688", "TCGA-QR-A6GS", "TCGA-S7-A7WR", "TCGA-TT-A6YP", "TCGA-QT-A5XO", "TCGA-WB-A81K", "TCGA-WB-A81V", "TCGA-TT-A6YN", "TCGA-QT-A5XM", "TCGA-SP-A6QF", "TCGA-WB-A81H", "TCGA-SQ-A6I4","TCGA-SR-A6MY", "TCGA-S7-A7WV", "TCGA-QR-A6H4", "TCGA-QR-A6H2", "TCGA-W2-A7HE", "TCGA-QR-A6GX", "TCGA-SR-A6MU", "TCGA-P8-A5KC","TCGA-TT-A6YO", "TCGA-W2-A7HC", "TCGA-SP-A6QH", "TCGA-QT-A5XK", "TCGA-QR-A6H1", "TCGA-WB-A81S", "TCGA-QR-A70R", "TCGA-WB-A821", "TCGA-S7-A7X1", "TCGA-RW-A684", "TCGA-QR-A70H", "TCGA-QR-A6H5", "TCGA-QR-A70U", "TCGA-QR-A7IN", "TCGA-P8-A5KD", "TCGA-QR-A70J", "TCGA-WB-A81I", "TCGA-WB-A81N", "TCGA-P8-A5KD", "TCGA-RT-A6YA", "TCGA-QR-A708", "TCGA-QT-A69Q", "TCGA-S7-A7WT", "TCGA-PR-A5PF", "TCGA-QR-A6GW", "TCGA-SQ-A6I6", "TCGA-WB-A81A", "TCGA-RW-A67Y", "TCGA-WB-A819", "TCGA-QR-A70X", "TCGA-QR-A6GZ", "TCGA-RW-A67V", "TCGA-QT-A5XJ", "TCGA-W2-A7UY", "TCGA-SP-A6QJ", "TCGA-PR-A5PG", "TCGA-W2-A7HB", "TCGA-RT-A6Y9", "TCGA-S7-A7WU", "TCGA-S7-A7WQ", "TCGA-RW-A689", "TCGA-QT-A5XN")
+
+```
+
+Match Star_Matrix columns to row names in Clinical_Sample
+```{r}
+#There are duplicated sample names in the Star_Matrix. I used the command below to remove duplicate column names. 
+Star_Matrix3 <- Star_Matrix2[, !duplicated(colnames(Star_Matrix2))]
+
+#Changing column 1 (gene_id) to row names and removing 1st column (which is now redundant)
+Star_Matrix4 <- Star_Matrix3
+row.names(Star_Matrix4) <- Star_Matrix3$gene_id
+Star_Matrix4 <- Star_Matrix4[-c(1)]
+
+#Ordering Star_Matrix to align with order of row names in clinical_sample
+Star_Matrix5 <- Star_Matrix4[match(rownames(clinical_sample4), colnames(Star_Matrix4))]
+
+#Converting Star_Matrix from datafram to a data matrix
+Star_Matrix6 <- data.matrix(Star_Matrix5)
+```
+
+## **DESeq2 Vignette**
+
+### DESeq Command
+
+All data is now properly formatted for use in DESeq2 vignette. From here, follow the instructions of the vignette.
+
+Load in the Star_Matrix6 & clinical_sample5 as cts and coldata respectively 
+```{r}
+cts <- Star_Matrix6
+coldata <- clinical_sample4
+```
+
+Loading all counts, clinical samples, and selecting for gender as variable of interest into dds object
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design= ~ gender)
+
+# Ignore warning if it appears
+```
+
+DESeq command tests for the following:
+
+estimating size factors
+estimating dispersions
+gene-wise dispersion estimates
+mean-dispersion relationship
+final dispersion estimates
+fitting model and testing
+-- replacing outliers and refitting for 13396 genes
+-- DESeq argument 'minReplicatesForReplace' = 7 
+-- original counts are preserved in counts(dds)
+estimating dispersions
+fitting model and testing
+
+Run the DeSeq command below
+```{r}
+dds <- DESeq(dds)
+
+#Note: Command may take 5-10 minutes
+```
+
+
+### Pre-Filtering
+
+Pre-Filtering is sometimes required to remove extraneous or unnecessary. Independent filtering is later on this dataset. 
+
+```{r}
+#Number of total genes from dds object
+nrow(dds)
+
+#Filtering for genes that have at least 10 reads across each gene
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+#Number of total genes after pre-filtering
+nrow(dds)
+```
+
+It looks like all the genes have at least 10 reads. So, there was no change in the dataset. 
+
+```{r, eval=FALSE}
+#Only need to run this you pre-filtered out genes.
+dds <- DESeq(dds)
+```
+
+Prints results of dds to a new variable.
+```{r}
+res <- results( dds )
+head(res)
+```
+
+**Meaning of Data**
+Base Mean = Average of the normalized count values
+log2(FoldChange) = Change in gene expression between male and female
+lfcSE = Standard Error of the log2 fold change values
+stat = Wald's test to determine the weighted distance between gene expression
+pvalue = Hypothesis test to tell whether expression difference is significant
+padj Adjusted P values based on the Benjamini-Hochberg adjustment
+
+### Log fold change shrinkage for visualization and ranking using lfcShrink function 
+
+Shrinkage does not change the fold changes of differential gene expression. Its function is to help with downstream assessments of results.
+LfcShrink adds a shrunken log2fold change and standard error results table from DESeq. Use the apeglm method for best shrinkage results. 
+```{r}
+resultsNames(dds)
+
+#Use the output of resultNames(dds) as the coef for the lfcShrink command (May take some time)
+resLFC <- lfcShrink(dds, coef="gender_male_vs_female", type="apeglm")
+
+resLFC
+
+#Citation for using apeglm with lfcShrink command
+#using 'apeglm' for LFC shrinkage. If used in published research, please cite:
+  #Zhu, A., Ibrahim, J.G., Love, M.I. (2018) Heavy-tailed prior distributions for
+#sequence count data: removing the noise and preserving large differences.
+#Bioinformatics. https://doi.org/10.1093/bioinformatics/bty895
+
+```
+
+### P-Values and Adjusted P-Values
+
+Ordering P-Values by smallest
+```{r}
+resOrdered <- res[order(res$pvalue),]
+
+summary(res)
+```
+
+P-Values less than 0.1
+```{r}
+sum(res$padj < 0.1, na.rm=TRUE)
+```
+
+### MA Plots
+MA plots show the log2(fold) differences with respect to the mean of normalized counts for all samples
+
+MA Plot of All Genes
+```{r}
+plotMA(res, ylim=c(-2,2))
+
+```
+
+MA Plot of Shrunken Genes
+```{r}
+plotMA(resLFC, ylim=c(-2,2))
+
+```
+
+### Plot Counts
+Plots normalized counts with a pseudocount of 0.5. Variable of interest is specified as intgroup
+
+```{r}
+#Plot count for gene with the lowest adjusted p value
+plotCounts(dds, gene=which.min(res$padj), intgroup="gender")
+```
+### Extracting transformed values
+Two types of transformation methods: vst and rlog
+Transformed values are required to create PCA Plots and Heatmaps. Use blind = FALSE for faster runtime. 
+Note: Rlog may take a 12-24 hours 
+
+```{r}
+vsd <- vst(dds, blind=FALSE)
+rld <- rlog(dds, blind=FALSE)
+
+head(assay(vsd), 3)
+```
+
+### Variance Plots based on Transformations
+The figures below plot the standard deviation of the transformed data across the samples, mean, the shifted log transformation (vst), and the regular log transformation (rlog)
+
+
+Variance Plot using Normal Transformation
+```{r}
+# this gives log2(n + 1)
+ntd <- normTransform(dds)
+meanSdPlot(assay(ntd))
+
+#Install package hexbin if prompted
+```
+
+Variance Plot using VST (Variance Stabilizing Transformation)
+```{r}
+meanSdPlot(assay(vsd))
+```
+Variance Plot using Rlog (Regularized log Transformation)
+```{r}
+meanSdPlot(assay(rld))
+
+```
+### Heatmap of the Transformed Datasets
+The commands below plot various heatmaps using the transformed dataset including normal trnasformation, variance stabilizing transformation, and regularized log transformation
+
+Assign the following values for Heatmap objects and wrangle as commanded
+```{r}
+select <- order(rowMeans(counts(dds,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+df <- as.data.frame(colData(dds)[,c("gender")])
+row.names(df) <- clinical_sample3$case_submitter_id
+```
+
+
+Normal Transformation Heatmap
+```{r}
+pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df)
+```
+Variance Stablizing Transformation Heatmap
+```{r}
+pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE, cluster_cols=FALSE, annotation_col=df)
+
+```
+Regularized log Transformation Heatmap
+```{r}
+pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE, cluster_cols=FALSE, annotation_col=df)
+
+```
+### Sample to Sample Distances
+Sample to Sample distances allow us to examine the similarities accross all samples. Follow the code below
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+DistMatrix <- as.matrix(sampleDists)
+pheatmap(DistMatrix)
+```
+### Principal Component Analysis Plot
+PCA Plots help visualize the variance between samples. Similar samples cluster together and PC1 seperates the most variation. 
+Follow the code below:
+```{r}
+plotPCA(vsd, intgroup="gender")
+
+```
+
+
+
+
+
